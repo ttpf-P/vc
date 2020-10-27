@@ -34,7 +34,8 @@ def accept(sock):
 
 
 def handle_tcp_data(data_processed):
-    print(data_processed)
+    #print("bguaeifhueouf")
+    print(len(data_processed))
 
 def black_magic(key, mask):
     """main tcp handler"""
@@ -43,49 +44,31 @@ def black_magic(key, mask):
     conn = key.fileobj
     
     if mask & selectors.EVENT_READ: #connection is readable
-        data = conn.recv(1024)
-        while data!=b"":
-            if key.data.message_len==0:
-                if len(data)<16 and header==b"":
-                    header=data
-                elif header!=b"":
-                    if data+header<16:
-                        header+=data
-                    else:
-                        data=header+data
-                        datalen = data[:8]
-                        key.data.message_len=int(datalen)
-                        datatype = data[8:16]
-                        key.data.message_type=datatype
-                        data=data[16:]
-                else:
-                    datalen = data[:8]
-                    key.data.message_len=int(datalen)
-                    datatype = data[8:16]
-                    key.data.message_type=datatype
-                    data=data[16:]
-            if key.data.message_len==0 and datatype == b"" and not datalen == b"":#bad health, closing connection
-                print("closing connection "+ str(key.data.ID)+" due to bad health")
-                data==b""
-            readlen=len(data)
-            if readlen<=key.data.message_len:
-                key.data.message+=data[:key.data.message_len]
-                key.data.message_len=0
-                handle_tcp_data(key.data.message)
-                key.data.message=b""
-                data=data[key.data.message_len:]
-            else:
-                key.data.message+=data
-                key.data.message_len-=readlen
-                data=b""
-            
 
-        print(datalen,datatype)
-        
-        #print(str(data))
+        data = conn.recv(16) #read header
         if data==b"":
             sel.unregister(conn)
             del addr_list[key.data.ID]
+        else:
+            print("recv")
+            try:
+                datalen = int(data[:8])
+            except:
+                print("bad header, returning")
+            datatype = data[8:16]
+            key.data.message_type=datatype
+            data = conn.recv(datalen)
+            if len(data)!=datalen:
+                print("bad header, returning")
+                return
+                    
+                
+            #print(datalen)
+            handle_tcp_data(data)
+            print(datalen,datatype)
+            
+            #print(str(data))
+        
     
 
 while True:
