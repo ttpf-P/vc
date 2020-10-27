@@ -1,0 +1,45 @@
+Sign On:
+
+Server&Client → diffie-hellman → austausch von besonders sicherem synchronem key(sk) über verschlüsselte verbindung (DIESER SCHRITT IST ANFÄLLIG GEGEN MAN IN THE MIDDLE)/server vergibt und sendet eine uuid, kann public sein.
+
+der Key sollte relativ regelmäßig erneuert werden, um bei database breaches den schaden zu minimieren
+
+Login to server:
+	diffie-hellman:
+		client sendet uuid
+		sk:
+			austausch eines temporären synchronen keys(tsk)
+	tsk:
+		weitere kommunikation zum server
+		
+Connection to Meeting:
+	Login to server: returnt tsk
+	tsk:
+		meetingname → ip adresse
+	diffie-hellman(client,meeting_host):
+		austausch von uuids
+	tsk:
+		client/meeting_host fragen den server ob der jeweils andere gerade connecten will
+		server antwortet
+		austausch von temporärem synchronem key(tsk2) zwischen client/meeting_host über den server
+	diffie-hellman(client,meeting_host)(die connection von eben):
+		austausch von tsk3
+	tsk2:
+		tsk3:
+			austausch von tsk4
+	tsk4:
+		client fragt meeting_host nach anderen clients im meeting, sendet video/audio per udp an deren ips
+		weitere kommunikation, udp/tcp
+	
+Meeting Hosting:
+	Hält einen thread für das connecten von neuen mitgliedern offen → dann connection to meeting
+	Hält die kommunikation mit dem server offen, regelmäßigige heartbeat pings
+	hält eine tcp connection zu jedem client offen, heartbeat pings
+	sendet video/audio per udp an die clients
+	
+diffie-hellman:
+	client schickt header an server
+	server schickt public vars
+	server schickt publickey
+	client schickt publickey:
+		returnt diese ebene
