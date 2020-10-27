@@ -12,6 +12,7 @@ s.bind(("",12345))
 s.listen()
 s.setblocking(False)
 
+#create selectors to look for read/writeability in sockets
 sel = selectors.DefaultSelector()
 sel.register(s, selectors.EVENT_READ, data=None)
 
@@ -26,26 +27,31 @@ def accept(sock):
     conn, addr = sock.accept()
     print("addr:"+str(addr))
     conn.setblocking(False)
-    data_cont=types.SimpleNamespace(auth="NOAUTH",ID=ID)
+    data_cont=types.SimpleNamespace(auth="NOAUTH",ID=ID)#creating data container
     addr_list[ID]=(conn,data_cont)
     ID+=1
-    sel.register(conn, events, data=data_cont)
+    sel.register(conn, events, data=data_cont)#register connection with data container @ selector
 
 def black_magic(key, mask):
-    print("key: "+str(key))
-    print("mask: "+str(mask))
+    """main tcp handler"""
+    #print("key: "+str(key))
+    #print("mask: "+str(mask))
     conn = key.fileobj
-    if mask & selectors.EVENT_READ:
+    
+    if mask & selectors.EVENT_READ: #connection is readable
         data = conn.recv(1024)
+        
         datalen = data[:8]
         datatype = data[8:16]
-        print(datalen.decode(),datatype.decode())
-        if datatype == b"" and not datalen == b"":
+
+        print(datalen,datatype)
+        if datatype == b"" and not datalen == b"":#bad health, closing connection
             print("closing connection "+ str(key.data.ID)+" due to bad health")
+            data==b""
         #print(str(data))
         if data==b"":
             sel.unregister(conn)
-            addr_list
+            del addr_list[key.data.ID]
     
 
 while True:
