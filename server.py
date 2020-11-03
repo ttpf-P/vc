@@ -3,6 +3,7 @@ import concurrent.futures as cf
 import selectors
 import time
 import types
+import serverFiles.tcp.main as tcp
 
 #events = selectors.EVENT_READ | selectors.EVENT_WRITE
 events = selectors.EVENT_READ
@@ -27,7 +28,7 @@ def accept(sock):
     conn, addr = sock.accept()
     print("addr:"+str(addr))
     conn.setblocking(False)
-    data_cont=types.SimpleNamespace(auth="NOAUTH",ID=ID,message_len=0,message_type=b"",message=b"",header=b"")#creating data container
+    data_cont=types.SimpleNamespace(auth="0",ID=ID,message_len=0,message_type=b"")#creating data container
     addr_list[ID]=(conn,data_cont)
     ID+=1
     sel.register(conn, events, data=data_cont)#register connection with data container @ selector
@@ -42,7 +43,7 @@ def black_magic(key, mask):
     #print("key: "+str(key))
     #print("mask: "+str(mask))
     conn = key.fileobj
-    
+
     if mask & selectors.EVENT_READ: #connection is readable
 
         data = conn.recv(16) #read header
@@ -61,15 +62,16 @@ def black_magic(key, mask):
             if len(data)!=datalen:
                 print("bad header, returning")
                 return
-                    
-                
+
+
             #print(datalen)
-            handle_tcp_data(data)
+            header=(datalen,datatype)
+            tcp.handle_tcp_data(header,data,key.data)#let the tcp module handle that
             print(datalen,datatype)
-            
+
             #print(str(data))
-        
-    
+
+
 
 while True:
     print("bis hier keine errors")
@@ -79,4 +81,3 @@ while True:
             accept(key.fileobj)
         else:
             black_magic(key, mask)
-
