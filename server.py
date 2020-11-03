@@ -3,6 +3,7 @@ import concurrent.futures as cf
 import selectors
 import time
 import types
+import serverFiles.tcp.main as tcp
 
 #events = selectors.EVENT_READ | selectors.EVENT_WRITE
 events = selectors.EVENT_READ
@@ -27,32 +28,50 @@ def accept(sock):
     conn, addr = sock.accept()
     print("addr:"+str(addr))
     conn.setblocking(False)
-    data_cont=types.SimpleNamespace(auth="NOAUTH",ID=ID)#creating data container
+    data_cont=types.SimpleNamespace(auth="0",ID=ID,message_len=0,message_type=b"")#creating data container
     addr_list[ID]=(conn,data_cont)
     ID+=1
     sel.register(conn, events, data=data_cont)#register connection with data container @ selector
+
+
+def handle_tcp_data(data_processed):
+    #print("bguaeifhueouf")
+    print(len(data_processed))
 
 def black_magic(key, mask):
     """main tcp handler"""
     #print("key: "+str(key))
     #print("mask: "+str(mask))
     conn = key.fileobj
-    
-    if mask & selectors.EVENT_READ: #connection is readable
-        data = conn.recv(1024)
-        
-        datalen = data[:8]
-        datatype = data[8:16]
 
-        print(datalen,datatype)
-        if datatype == b"" and not datalen == b"":#bad health, closing connection
-            print("closing connection "+ str(key.data.ID)+" due to bad health")
-            data==b""
-        #print(str(data))
+    if mask & selectors.EVENT_READ: #connection is readable
+
+        data = conn.recv(16) #read header
         if data==b"":
             sel.unregister(conn)
             del addr_list[key.data.ID]
-    
+        else:
+            print("recv")
+            try:
+                datalen = int(data[:8])
+            except:
+                print("bad header, returning")
+            datatype = data[8:16]
+            key.data.message_type=datatype
+            data = conn.recv(datalen)
+            if len(data)!=datalen:
+                print("bad header, returning")
+                return
+
+
+            #print(datalen)
+            header=(datalen,datatype)
+            tcp.handle_tcp_data(header,data,key.data)#let the tcp module handle that
+            print(datalen,datatype)
+
+            #print(str(data))
+
+
 
 while True:
     print("bis hier keine errors")
@@ -62,4 +81,3 @@ while True:
             accept(key.fileobj)
         else:
             black_magic(key, mask)
-
